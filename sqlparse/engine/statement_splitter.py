@@ -130,7 +130,7 @@ class StatementSplitter:
         # it's a transaction statement, not a block.
         if self._seen_begin and \
                 (ttype is T.Keyword or ttype is T.Name) and \
-                unified in ('TRANSACTION', 'WORK', 'TRAN',
+                unified in ('TRANSACTION', 'WORK', 'TRAN', 'READ',
                             'DISTRIBUTED', 'DEFERRED',
                             'IMMEDIATE', 'EXCLUSIVE'):
             self._seen_begin = False
