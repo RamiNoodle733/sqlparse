@@ -2,8 +2,8 @@
 # Copyright (C) 2009-2020 the sqlparse authors and contributors
 # <see AUTHORS file>
 #
-# This module is part of python-sqlparse and is released under
-# the BSD License: https://opensource.org/licenses/BSD-3-Clause
+# This module is part of python-sqlparse and is released under the BSD License:
+# https://opensource.org/licenses/BSD-3-Clause
 
 """filter"""
 
@@ -20,6 +20,7 @@ class FilterStack:
         self.stmtprocess = []
         self.postprocess = []
         self._grouping = False
+        self.lexer = lexer.Lexer.get_default_instance()
         if strip_semicolon:
             self.stmtprocess.append(StripTrailingSemicolonFilter())
 
@@ -28,7 +29,7 @@ class FilterStack:
 
     def run(self, sql, encoding=None):
         try:
-            stream = lexer.tokenize(sql, encoding)
+            stream = self.lexer.get_tokens(sql, encoding)
             # Process token stream
             for filter_ in self.preprocess:
                 stream = filter_.process(stream)
