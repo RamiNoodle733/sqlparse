@@ -17,6 +17,17 @@ __version__ = "0.6.1.dev0"
 __all__ = ["cli", "engine", "filters", "formatter", "sql", "tokens"]
 
 
+def set_max_grouping_tokens(limit: int | None) -> None:
+    """Set the maximum token count allowed during grouping.
+
+    Set *limit* to ``None`` to disable the token-count guard. Disabling or
+    increasing this limit is not recommended for SQL from untrusted sources.
+    """
+    if limit is not None and limit < 1:
+        raise ValueError("Grouping token limit must be a positive integer or None")
+    engine.grouping.MAX_GROUPING_TOKENS = limit
+
+
 def parse(
     sql: str, encoding: str | None = None
 ) -> tuple[sql.Statement, ...]:
