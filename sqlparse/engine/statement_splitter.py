@@ -21,6 +21,8 @@ class StatementSplitter:
         self._parenthesis_level = 0
         self._unconfirmed_start = None
         self._is_create = False
+        self._is_create_procedure = False
+        self._procedure_body_started = False
         self._seen_begin = False
 
         self.consume_ws = False
@@ -109,6 +111,13 @@ class StatementSplitter:
             self._is_create = True
             return 0
 
+        # Oracle-style CREATE PROCEDURE statements can contain declarations
+        # terminated by semicolons between AS/IS and the BEGIN body. Keep
+        # those semicolons inside the CREATE statement until its outer END.
+        if self._is_create and unified == 'PROCEDURE':
+            self._is_create_procedure = True
+            return 0
+
         # Handle DECLARE block start (only for CREATE statements)
         if unified == 'DECLARE' and self._is_create and not self._block_stack:
             self._block_stack.append('DECLARE')
@@ -117,6 +126,8 @@ class StatementSplitter:
         # Handle BEGIN block start
         if unified == 'BEGIN':
             self._seen_begin = True
+            if self._is_create_procedure:
+                self._procedure_body_started = True
             # Transition DECLARE to BEGIN if present
             if self._block_stack and self._block_stack[-1] == 'DECLARE':
                 self._block_stack.pop()
@@ -145,8 +156,19 @@ class StatementSplitter:
             if res is not None:
                 return res
 
-        # Handle closing keywords
-        return self._handle_closing_keyword(unified)
+        # A top-level END closes a CREATE PROCEDURE body. Clear the routine
+        # state before its following semicolon so the statement can be yielded.
+        procedure_end = (
+            unified == 'END'
+            and self._is_create_procedure
+            and self._procedure_body_started
+            and self._block_stack == ['BEGIN']
+        )
+        result = self._handle_closing_keyword(unified)
+        if procedure_end:
+            self._is_create_procedure = False
+            self._procedure_body_started = False
+        return result
 
     def process(self, stream):
         """Process the stream"""
@@ -179,8 +201,13 @@ class StatementSplitter:
             # standalone BEGIN; as a transaction statement
             if ttype is T.Punctuation and value == ';':
                 self._seen_begin = False
-                # Split on semicolon if not inside a BEGIN...END block
-                if self.level <= 0 and 'BEGIN' not in self._block_stack:
+                # Split on semicolon if not inside a BEGIN...END block or the
+                # declaration section of a CREATE PROCEDURE.
+                if (
+                    self.level <= 0
+                    and 'BEGIN' not in self._block_stack
+                    and not self._is_create_procedure
+                ):
                     self.consume_ws = True
             elif ttype is T.Keyword and value.split()[0] == 'GO':
                 self.consume_ws = True
