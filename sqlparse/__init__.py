@@ -36,6 +36,8 @@ def set_max_grouping_tokens(limit: Optional[int]) -> None:
 
     Pass ``None`` to disable the token-count limit. Positive integers set a
     process-wide limit for subsequent parsing and formatting operations.
+    Disabling or increasing this limit is not recommended for SQL from
+    untrusted sources.
     """
     if limit is not None and (
         isinstance(limit, bool) or not isinstance(limit, int) or limit < 1
