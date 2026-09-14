@@ -16,10 +16,30 @@ from sqlparse import engine
 from sqlparse import tokens
 from sqlparse import filters
 from sqlparse import formatter
+from sqlparse.engine import grouping as _grouping
 
 
 __version__ = "0.5.6.dev0"
-__all__ = ["engine", "filters", "formatter", "sql", "tokens", "cli"]
+__all__ = [
+    "engine",
+    "filters",
+    "formatter",
+    "sql",
+    "tokens",
+    "cli",
+    "set_max_grouping_tokens",
+]
+
+
+def set_max_grouping_tokens(limit: Optional[int]) -> None:
+    """Set the maximum token count accepted by the grouping stage.
+
+    Pass ``None`` to disable the token-count limit. Positive integers set a
+    process-wide limit for subsequent parsing and formatting operations.
+    """
+    if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 1):
+        raise ValueError("Grouping token limit must be a positive integer or None")
+    _grouping.MAX_GROUPING_TOKENS = limit
 
 
 def parse(
